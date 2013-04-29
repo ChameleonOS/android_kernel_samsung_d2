@@ -1105,6 +1105,46 @@ static struct platform_suspend_ops msm_pm_ops = {
 	.valid = suspend_valid_only_mem,
 };
 
+static int __devinit msm_cpu_status_probe(struct platform_device *pdev)
+{
+	struct msm_pm_sleep_status_data *pdata;
+	char *key;
+	u32 cpu;
+
+	if (!pdev)
+		return -EFAULT;
+
+	msm_pm_slp_sts =
+			kzalloc(sizeof(*msm_pm_slp_sts) * num_possible_cpus(),
+			GFP_KERNEL);
+
+	if (!msm_pm_slp_sts)
+		return -ENOMEM;
+	pdata = pdev->dev.platform_data;
+	if (!pdev->dev.platform_data)
+		goto fail_free_mem;
+
+	for_each_possible_cpu(cpu) {
+		msm_pm_slp_sts[cpu].base_addr =
+				pdata->base_addr + cpu * pdata->cpu_offset;
+		msm_pm_slp_sts[cpu].mask = pdata->mask;
+	}
+
+	return 0;
+
+fail_free_mem:
+	kfree(msm_pm_slp_sts);
+	return -EINVAL;
+};
+
+static struct platform_driver msm_cpu_status_driver = {
+	.probe = msm_cpu_status_probe,
+	.driver = {
+		.name = "cpu_slp_status",
+		.owner = THIS_MODULE,
+	},
+};
+
 /******************************************************************************
  * Initialization routine
  *****************************************************************************/
