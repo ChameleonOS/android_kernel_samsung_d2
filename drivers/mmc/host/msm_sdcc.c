@@ -1140,16 +1140,9 @@ static int msmsdcc_sps_start_xfer(struct msmsdcc_host *host,
 				data_cnt = SPS_MAX_DESC_SIZE;
 			} else {
 				data_cnt = len;
-				if ((i == data->sg_len - 1) &&
-						(sps_pipe_handle ==
-						host->sps.cons.pipe_handle)) {
-					/*
-					 * set EOT only for consumer pipe, for
-					 * producer pipe h/w will set it.
-					 */
+				if (i == data->sg_len - 1)
 					flags = SPS_IOVEC_FLAG_INT |
 						SPS_IOVEC_FLAG_EOT;
-				}
 			}
 			rc = sps_transfer_one(sps_pipe_handle, addr,
 						data_cnt, host, flags);

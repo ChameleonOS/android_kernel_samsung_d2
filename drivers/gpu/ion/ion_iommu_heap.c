@@ -112,7 +112,7 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 		int j;
 		void *ptr = NULL;
 		unsigned int npages_to_vmap, total_pages, num_large_pages = 0;
-		unsigned long size_remaining = PAGE_ALIGN(size);
+		long size_remaining = PAGE_ALIGN(size);
 		unsigned int max_order = orders[0];
 
 		data = kmalloc(sizeof(*data), GFP_KERNEL);
@@ -421,30 +421,15 @@ static int ion_iommu_cache_ops(struct ion_heap *heap, struct ion_buffer *buffer,
 
 	switch (cmd) {
 	case ION_IOC_CLEAN_CACHES:
-		if (!vaddr)
-			dma_sync_sg_for_device(NULL, buffer->sg_table->sgl,
-				buffer->sg_table->nents, DMA_TO_DEVICE);
-		else
-			dmac_clean_range(vaddr, vaddr + length);
+		dmac_clean_range(vaddr, vaddr + length);
 		outer_cache_op = outer_clean_range;
 		break;
 	case ION_IOC_INV_CACHES:
-		if (!vaddr)
-			dma_sync_sg_for_cpu(NULL, buffer->sg_table->sgl,
-				buffer->sg_table->nents, DMA_FROM_DEVICE);
-		else
-			dmac_inv_range(vaddr, vaddr + length);
+		dmac_inv_range(vaddr, vaddr + length);
 		outer_cache_op = outer_inv_range;
 		break;
 	case ION_IOC_CLEAN_INV_CACHES:
-		if (!vaddr) {
-			dma_sync_sg_for_device(NULL, buffer->sg_table->sgl,
-				buffer->sg_table->nents, DMA_TO_DEVICE);
-			dma_sync_sg_for_cpu(NULL, buffer->sg_table->sgl,
-				buffer->sg_table->nents, DMA_FROM_DEVICE);
-		} else {
-			dmac_flush_range(vaddr, vaddr + length);
-		}
+		dmac_flush_range(vaddr, vaddr + length);
 		outer_cache_op = outer_flush_range;
 		break;
 	default:

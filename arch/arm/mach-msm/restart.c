@@ -324,12 +324,8 @@ void msm_restart(char mode, const char *cmd)
 			__raw_writel(0x77665511, restart_reason);
 		} else if (!strncmp(cmd, "nvrestore", 9)) {
 			__raw_writel(0x77665512, restart_reason);
-		} else if (!strncmp(cmd, "debug-high", 10)) {
+		} else if (!strncmp(cmd, "debuglevel", 10)) {
 			__raw_writel(0xabcd4948, restart_reason);
-		} else if (!strncmp(cmd, "debug-mid", 9)) {
-			__raw_writel(0xabcd494d, restart_reason);
-		} else if (!strncmp(cmd, "debug-low", 9)) {
-			__raw_writel(0xabcd4f4c, restart_reason);
 		} else if (!strncmp(cmd, "oem-", 4)) {
 			unsigned long code;
 			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;
@@ -353,7 +349,7 @@ void msm_restart(char mode, const char *cmd)
 				&& !kstrtoul(cmd + 7, 0, &value)) {
 			__raw_writel(0xfedc0000 | value, restart_reason);
 #endif
-#if 1
+#ifdef CONFIG_SEC_DEBUG
 		} else {
 			__raw_writel(0x12345678, restart_reason);
 		}
