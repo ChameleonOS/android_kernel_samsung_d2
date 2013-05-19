@@ -2627,6 +2627,7 @@ static int snd_pcm_common_ioctl1(struct file *file,
 	case SNDRV_COMPRESS_GET_PARAMS:
 	case SNDRV_COMPRESS_TSTAMP:
 	case SNDRV_COMPRESS_DRAIN:
+	case SNDRV_COMPRESS_METADATA_MODE:
 		return snd_compressed_ioctl(substream, cmd, arg);
 	}
 	snd_printd("unknown ioctl = 0x%x\n", cmd);
@@ -3247,18 +3248,10 @@ EXPORT_SYMBOL_GPL(snd_pcm_lib_default_mmap);
 int snd_pcm_lib_mmap_iomem(struct snd_pcm_substream *substream,
 			   struct vm_area_struct *area)
 {
-	long size;
-	unsigned long offset;
+	struct snd_pcm_runtime *runtime = substream->runtime;;
 
 	area->vm_page_prot = pgprot_noncached(area->vm_page_prot);
-	area->vm_flags |= VM_IO;
-	size = area->vm_end - area->vm_start;
-	offset = area->vm_pgoff << PAGE_SHIFT;
-	if (io_remap_pfn_range(area, area->vm_start,
-				(substream->runtime->dma_addr + offset) >> PAGE_SHIFT,
-				size, area->vm_page_prot))
-		return -EAGAIN;
-	return 0;
+	return vm_iomap_memory(area, runtime->dma_addr, runtime->dma_bytes);
 }
 
 EXPORT_SYMBOL(snd_pcm_lib_mmap_iomem);

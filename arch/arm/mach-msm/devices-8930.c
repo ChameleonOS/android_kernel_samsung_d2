@@ -32,6 +32,7 @@
 #include "rpm_rbcpr_stats.h"
 #include "footswitch.h"
 #include "acpuclock-krait.h"
+#include "pm.h"
 
 #ifdef CONFIG_MSM_MPM
 #include <mach/mpm.h>
@@ -39,14 +40,6 @@
 #define MSM8930_RPM_MASTER_STATS_BASE	0x10B100
 #define MSM8930_PC_CNTR_PHYS	(MSM8930_IMEM_PHYS + 0x664)
 #define MSM8930_PC_CNTR_SIZE		0x40
-
-static struct resource msm8930_resources_pccntr[] = {
-	{
-		.start	= MSM8930_PC_CNTR_PHYS,
-		.end	= MSM8930_PC_CNTR_PHYS + MSM8930_PC_CNTR_SIZE,
-		.flags	= IORESOURCE_MEM,
-	},
-};
 
 static struct msm_pm_sleep_status_data msm_pm_slp_sts_data = {
 	.base_addr = MSM_ACC0_BASE + 0x08,
@@ -59,6 +52,14 @@ struct platform_device msm8930_cpu_slp_status = {
 	.id		= -1,
 	.dev = {
 		.platform_data = &msm_pm_slp_sts_data,
+	},
+};
+
+static struct resource msm8930_resources_pccntr[] = {
+	{
+		.start	= MSM8930_PC_CNTR_PHYS,
+		.end	= MSM8930_PC_CNTR_PHYS + MSM8930_PC_CNTR_SIZE,
+		.flags	= IORESOURCE_MEM,
 	},
 };
 
@@ -954,17 +955,20 @@ static struct msm_bus_vectors vidc_vdec_720p_vectors[] = {
 		.ib  = 7000000,
 	},
 };
+/*This value is modified because internally we use
+ * lower value. But OEM has increased it. This is correct value
+ * for oem*/
 static struct msm_bus_vectors vidc_venc_1080p_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_HD_CODEC_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 372244480,
+		.ab  = 400000000,
 		.ib  = 2560000000U,
 	},
 	{
 		.src = MSM_BUS_MASTER_HD_CODEC_PORT1,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 501219328,
+		.ab  = 550000000,
 		.ib  = 2560000000U,
 	},
 	{
