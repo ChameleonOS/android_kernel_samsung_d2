@@ -382,8 +382,7 @@ static void mpq_dmx_tspp_aggregated_process(int tsif, int channel_id)
 			buff_current_addr_phys - buff_start_addr_phys);
 
 		mpq_sdmx_process(mpq_demux, &input, aggregate_len,
-			buff_current_addr_phys - buff_start_addr_phys,
-			TSPP_RAW_TTS_SIZE);
+			buff_current_addr_phys - buff_start_addr_phys);
 	}
 
 	for (i = 0; i < aggregate_count; i++)

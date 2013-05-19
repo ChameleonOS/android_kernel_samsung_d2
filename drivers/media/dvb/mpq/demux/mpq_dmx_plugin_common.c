@@ -4609,7 +4609,7 @@ static int mpq_sdmx_process_buffer(struct mpq_demux *mpq_demux,
 	}
 
 	MPQ_DVB_DBG_PRINT(
-		"%s: Before SDMX_process: input read_offset=%u, fill count=%u\n",
+		"\n\n%s: Before SDMX_process: input read_offset=%u, fill count=%u\n",
 		__func__, read_offset, fill_count);
 
 	process_start_time = current_kernel_time();
@@ -4652,19 +4652,14 @@ static int mpq_sdmx_process_buffer(struct mpq_demux *mpq_demux,
 int mpq_sdmx_process(struct mpq_demux *mpq_demux,
 	struct sdmx_buff_descr *input,
 	u32 fill_count,
-	u32 read_offset,
-	size_t tsp_size)
+	u32 read_offset)
 {
 	int ret;
 	int todo;
 	int total_bytes_read = 0;
-	int limit = mpq_sdmx_proc_limit * tsp_size;
+	int limit = mpq_sdmx_proc_limit * mpq_demux->demux.ts_packet_size;
 
-	MPQ_DVB_DBG_PRINT(
-		"\n\n%s: read_offset=%u, fill_count=%u, tsp_size=%u\n",
-		__func__, read_offset, fill_count, tsp_size);
-
-	while (fill_count >= tsp_size) {
+	while (fill_count >= mpq_demux->demux.ts_packet_size) {
 		todo = fill_count > limit ? limit : fill_count;
 		ret = mpq_sdmx_process_buffer(mpq_demux, input, todo,
 			read_offset);
@@ -4720,8 +4715,7 @@ static int mpq_sdmx_write(struct mpq_demux *mpq_demux,
 	buf_desc.size = rbuf->size;
 	read_offset = rbuf->pread;
 
-	return mpq_sdmx_process(mpq_demux, &buf_desc, count,
-				read_offset, mpq_demux->demux.ts_packet_size);
+	return mpq_sdmx_process(mpq_demux, &buf_desc, count, read_offset);
 }
 
 int mpq_dmx_write(struct dmx_demux *demux, const char *buf, size_t count)

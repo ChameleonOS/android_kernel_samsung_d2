@@ -448,11 +448,8 @@ static int msm_server_control(struct msm_cam_server_dev *server_dev,
 	} while (1);
 	D("Waiting is over for config status\n");
 	if (list_empty_careful(&queue->list)) {
-		if (!rc) {
+		if (!rc)
 			rc = -ETIMEDOUT;
-			msm_drain_eventq(
-			&server_dev->server_queue[out->queue_idx].eventData_q);
-		}
 		if (rc < 0) {
 			if (++server_dev->server_evt_id == 0)
 				server_dev->server_evt_id++;
@@ -489,7 +486,6 @@ static int msm_server_control(struct msm_cam_server_dev *server_dev,
 	return rc;
 
 ctrlcmd_alloc_fail:
-	mutex_unlock(&server_dev->server_queue_lock);
 	kfree(isp_event);
 isp_event_alloc_fail:
 	kfree(event_qcmd);
@@ -2741,7 +2737,6 @@ int msm_server_send_ctrl(struct msm_ctrl_cmd *out,
 	return rc;
 
 ctrlcmd_alloc_fail:
-	mutex_unlock(&server_dev->server_queue_lock);
 	kfree(isp_event);
 isp_event_alloc_fail:
 	kfree(event_qcmd);
@@ -2778,6 +2773,40 @@ static unsigned int msm_poll_config(struct file *fp,
 	&config->config_stat_event_queue.eventHandle.wait, wait);
 	if (v4l2_event_pending(&config->config_stat_event_queue.eventHandle))
 		rc |= POLLPRI;
+	return rc;
+}
+
+static int msm_mmap_config(struct file *fp, struct vm_area_struct *vma)
+{
+	struct msm_cam_config_dev *config_cam = fp->private_data;
+	int rc = 0;
+	int phyaddr;
+	int retval;
+	unsigned long size;
+
+	D("%s: phy_addr=0x%x", __func__, config_cam->mem_map.cookie);
+	phyaddr = (int)config_cam->mem_map.cookie;
+	if (!phyaddr) {
+		pr_err("%s: no physical memory to map", __func__);
+		return -EFAULT;
+	}
+	memset(&config_cam->mem_map, 0,
+		sizeof(struct msm_mem_map_info));
+	size = vma->vm_end - vma->vm_start;
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	retval = remap_pfn_range(vma, vma->vm_start,
+					phyaddr >> PAGE_SHIFT,
+					size, vma->vm_page_prot);
+	if (retval) {
+		pr_err("%s: remap failed, rc = %d",
+					__func__, retval);
+		rc = -ENOMEM;
+		goto end;
+	}
+	D("%s: phy_addr=0x%x: %08lx-%08lx, pgoff %08lx\n",
+			__func__, (uint32_t)phyaddr,
+			vma->vm_start, vma->vm_end, vma->vm_pgoff);
+end:
 	return rc;
 }
 
@@ -3054,6 +3083,12 @@ static long msm_ioctl_config(struct file *fp, unsigned int cmd,
 		rc = msm_v4l2_evt_notify(config_cam->p_mctl, cmd, arg);
 		break;
 
+	case MSM_CAM_IOCTL_SET_MEM_MAP_INFO:
+		if (copy_from_user(&config_cam->mem_map, (void __user *)arg,
+				sizeof(struct msm_mem_map_info)))
+			rc = -EINVAL;
+		break;
+
 	case MSM_CAM_IOCTL_SET_MCTL_SDEV:{
 		struct msm_mctl_set_sdev_data set_data;
 		if (copy_from_user(&set_data, (void __user *)arg,
@@ -3115,6 +3150,7 @@ static const struct file_operations msm_fops_config = {
 	.open  = msm_open_config,
 	.poll  = msm_poll_config,
 	.unlocked_ioctl = msm_ioctl_config,
+	.mmap	= msm_mmap_config,
 	.release = msm_close_config,
 };
 
